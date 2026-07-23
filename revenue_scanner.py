@@ -422,34 +422,53 @@ class UnifiedRevenueScanner(RevenueScanner):
         return all_opportunities
     
     def analyze_opportunity(self, opp: dict) -> dict:
-        """Analyze a single opportunity and score it"""
-        system_prompt = """You are a pragmatic freelancer evaluating paid opportunities.
-Score 0-100 based on:
-- Payment certainty (will you actually get paid?)
-- Skill fit (can you do this quickly?)
-- Time to payment (how fast will you earn?)
-- Competition (how many others want this?)
-
-Return JSON: {"score": N, "reasoning": "...", "estimated_earnings_usd": N, "estimated_hours": N, "should_pursue": true/false}"""
-
-        user_message = f"""Evaluate:
-Source: {opp.get('source')}
-Type: {opp.get('type')}
-Title: {opp.get('title')}
-Description: {opp.get('description', opp.get('selftext', opp.get('body', '')))[:300]}
-Value: {opp.get('value', opp.get('salary', 'Unknown'))}
-URL: {opp.get('url')}"""
-
-        response = self.think(system_prompt, user_message, max_tokens=400)
-        if response:
-            try:
-                import re
-                json_match = re.search(r'\{.*\}', response, re.DOTALL)
-                if json_match:
-                    return json.loads(json_match.group())
-            except json.JSONDecodeError:
-                pass
-        return {"score": 0, "reasoning": "Analysis failed", "estimated_earnings_usd": 0, "estimated_hours": 0, "should_pursue": False}
+        """Score an opportunity based on heuristics (no API call needed)"""
+        score = 0
+        title = opp.get('title', '').lower()
+        desc = opp.get('description', opp.get('selftext', opp.get('body', ''))).lower()
+        text = title + ' ' + desc
+        
+        # High-value keywords
+        high_value = ['$', 'usd', 'pay', 'paid', 'bounty', 'reward', 'money', 'crypto', 'bitcoin', 'eth']
+        if any(kw in text for kw in high_value):
+            score += 30
+        
+        # Skill match (Python, web, API, automation)
+        skills = ['python', 'automation', 'api', 'web', 'bot', 'script', 'data', 'scrape', 'trading']
+        if any(kw in text for kw in skills):
+            score += 25
+        
+        # Quick wins (small scope)
+        quick = ['simple', 'easy', 'quick', 'small', 'minor', 'fix', 'bug', 'single', 'hour']
+        if any(kw in text for kw in quick):
+            score += 20
+        
+        # Urgency
+        urgent = ['asap', 'urgent', 'immediately', 'today', 'now']
+        if any(kw in text for kw in urgent):
+            score += 15
+        
+        # Source quality
+        if opp.get('source') == 'github':
+            score += 10
+        elif opp.get('source') in ('upwork', 'freelancer'):
+            score += 15
+        elif opp.get('source') == 'reddit':
+            score += 5
+        
+        # Payment specified
+        import re
+        payment = re.findall(r'\$[\d,]+', text)
+        if payment:
+            score += 20
+        
+        return {
+            "score": min(score, 100),
+            "reasoning": f"Heuristic score: {score}",
+            "estimated_earnings_usd": 50 if payment else 20,
+            "estimated_hours": 2,
+            "should_pursue": score >= 20
+        }
     
     def run_full_scan(self) -> List[dict]:
         """Full scan pipeline: scan → analyze → filter → queue"""

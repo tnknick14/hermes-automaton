@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 from work_modules import BountyAnalyzer, ProposalGenerator, OfferCreator, MarketResearcher, DeliveryTracker, SelfImprover
 from revenue_scanner import UnifiedRevenueScanner
+from execution_engine import ExecutionEngine
 
 # ── Configuration ──────────────────────────────────────────────
 
@@ -235,11 +236,16 @@ class HermesAgent:
         self.log("system", "=== DAILY LOOP END ===")
         
     def run_revenue_scan(self):
-        """Run unified multi-source revenue scanner"""
+        """Run unified multi-source revenue scanner + execute top opportunities"""
+        # 1. Scan all sources
         scanner = UnifiedRevenueScanner(self)
         analyzed = scanner.run_full_scan()
         
-        # Execute work modules on top opportunities
+        # 2. Execute top opportunities (score >= 60)
+        engine = ExecutionEngine(self)
+        engine.execute_top_opportunities(analyzed, max_to_execute=3)
+        
+        # 3. Execute work modules on remaining opportunities
         self.execute_work_modules(analyzed)
         
     def execute_work_modules(self, opportunities: List[dict]):

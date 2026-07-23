@@ -19,6 +19,7 @@ from typing import Optional, Dict, Any, List
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
 from work_modules import BountyAnalyzer, ProposalGenerator, OfferCreator, MarketResearcher, DeliveryTracker, SelfImprover
+from revenue_scanner import UnifiedRevenueScanner
 
 # ── Configuration ──────────────────────────────────────────────
 
@@ -218,11 +219,10 @@ class HermesAgent:
         # 3. Review active tasks
         self.review_tasks()
         
-        # 4. Find new opportunities
-        opportunities = self.scan_opportunities()
+
         
-        # 5. Execute work modules (bounties, offers, research)
-        self.execute_work_modules(opportunities)
+        # 4-5. Multi-source revenue scan + execute work modules
+        self.run_revenue_scan()
         
         # 6. Self-improvement review (every 7 days)
         if datetime.now().weekday() == 0:  # Monday
@@ -232,6 +232,14 @@ class HermesAgent:
         self.end_of_cycle_report()
         
         self.log("system", "=== DAILY LOOP END ===")
+        
+    def run_revenue_scan(self):
+        """Run unified multi-source revenue scanner"""
+        scanner = UnifiedRevenueScanner(self)
+        analyzed = scanner.run_full_scan()
+        
+        # Execute work modules on top opportunities
+        self.execute_work_modules(analyzed)
         
     def execute_work_modules(self, opportunities: List[dict]):
         """Execute all active work modules"""
@@ -336,64 +344,8 @@ class HermesAgent:
         
         self.save_state()
         
-    def scan_opportunities(self) -> List[dict]:
-        """Scan for new opportunities"""
-        opportunities = []
+
         
-        # GitHub bounties
-        bounties = self.scan_github_bounties()
-        opportunities.extend(bounties)
-        
-        # Freelance platforms could go here
-        
-        return opportunities
-        
-    def scan_github_bounties(self) -> List[dict]:
-        """Scan GitHub for bounty issues"""
-        try:
-            # Search for open bounty issues
-            url = "https://api.github.com/search/issues"
-            params = {
-                "q": "label:bounty state:open",
-                "sort": "created",
-                "order": "desc",
-                "per_page": 10
-            }
-            resp = requests.get(url, params=params, timeout=15)
-            if resp.status_code == 200:
-                data = resp.json()
-                items = data.get("items", [])
-                opportunities = []
-                for item in items[:5]:
-                    opportunities.append({
-                        "type": "github_bounty",
-                        "title": item["title"],
-                        "url": item["html_url"],
-                        "repo": item["repository_url"].split("/")[-1],
-                        "created": item["created_at"]
-                    })
-                return opportunities
-            else:
-                self.log("warning", f"GitHub API returned {resp.status_code}")
-                return []
-        except Exception as e:
-            self.log("error", f"GitHub scan failed: {e}")
-            return []
-            
-    def prioritize_and_execute(self, opportunities: List[dict]):
-        """Prioritize tasks and execute the highest-value ones"""
-        # Always prioritize existing customer obligations
-        active_jobs = self.crm.get("active_jobs", [])
-        if active_jobs:
-            self.log("work", f"Prioritizing {len(active_jobs)} active jobs")
-            # Execute active job work here
-            return
-            
-        # Then revenue-producing work
-        if opportunities:
-            best = opportunities[0]  # Simple: take first
-            self.log("work", f"Pursuing: {best['title'][:60]}...")
-            # Could start work on this
             
     def end_of_cycle_report(self):
         """End of cycle report"""

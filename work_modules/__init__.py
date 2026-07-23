@@ -44,15 +44,15 @@ class WorkModule:
             )
             if resp.status_code == 200:
                 data = resp.json()
-                content = data["choices"][0]["message"]["content"]
+                msg = data["choices"][0]["message"]
+                content = msg.get("content") or msg.get("reasoning_content") or ""
                 usage = data.get("usage", {})
                 tokens = usage.get("total_tokens", 0)
                 cost = (tokens / 1000) * 0.002
                 self.agent.record_expense("inference", f"{self.__class__.__name__} ({tokens} tokens)", cost)
-                return content
-            else:
-                self.agent.log("error", f"API error {resp.status_code}: {resp.text[:200]}")
-                return None
+                return content if content else None
+            self.agent.log("error", f"API {resp.status_code}: {resp.text[:200]}")
+            return None
         except Exception as e:
             self.agent.log("error", f"Inference failed: {e}")
             return None

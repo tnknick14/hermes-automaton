@@ -186,14 +186,15 @@ class HermesAgent:
             elapsed = time.time() - start
             if resp.status_code == 200:
                 data = resp.json()
-                content = data["choices"][0]["message"]["content"]
-                # Track cost (approximate: $0.002 per 1k tokens)
+                # Handle both content and reasoning_content (LongCat-2.0 returns reasoning_content)
+                msg = data["choices"][0]["message"]
+                content = msg.get("content") or msg.get("reasoning_content") or ""
                 usage = data.get("usage", {})
                 tokens = usage.get("total_tokens", 0)
                 cost = (tokens / 1000) * 0.002
                 self.record_expense("inference", f"API call ({tokens} tokens)", cost)
                 self.log("inference", f"Thought in {elapsed:.1f}s, {tokens} tokens, ${cost:.4f}")
-                return content
+                return content if content else None
             else:
                 self.log("error", f"API error {resp.status_code}: {resp.text[:200]}")
                 return None

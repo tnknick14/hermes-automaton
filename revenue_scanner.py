@@ -168,16 +168,17 @@ class JobBoardScanner(RevenueScanner):
             if resp.status_code == 200:
                 jobs = resp.json()
                 for job in jobs[:10]:
-                    if 'tags' in job and any(t in ['python', 'automation', 'api', 'bot', 'crypto', 'trading'] for t in job.get('tags', [])):
+                    tags = job.get('tags', [])
+                    if isinstance(tags, list) and any(t in ['python', 'automation', 'api', 'bot', 'crypto', 'trading'] for t in tags):
                         opportunities.append({
                             "source": "remoteok",
                             "type": "remote_job",
                             "title": job.get('position', ''),
                             "company": job.get('company', ''),
                             "url": job.get('url', ''),
-                            "tags": job.get('tags', []),
+                            "tags": tags,
                             "salary": job.get('salary', ''),
-                            "created": datetime.fromtimestamp(job.get('date', 0)).isoformat() if job.get('date') else ''
+                            "created": datetime.now().isoformat()
                         })
         except Exception as e:
             self.agent.log("error", f"RemoteOK scan failed: {e}")
@@ -468,10 +469,10 @@ URL: {opp.get('url')}"""
         # 3. Sort by score
         analyzed.sort(key=lambda x: x.get("analysis", {}).get("score", 0), reverse=True)
         
-        # 4. Queue high-scoring opportunities
+        # Queue high-scoring opportunities (>= 40 to start, tighten later)
         queued = 0
         for opp in analyzed:
-            if opp.get("analysis", {}).get("score", 0) >= 60:
+            if opp.get("analysis", {}).get("score", 0) >= 40:
                 self.agent.tasks["queue"].append({
                     "type": opp["type"],
                     "source": opp["source"],

@@ -423,7 +423,7 @@ class ExecutionEngine:
         """Execute top N opportunities"""
         executed = 0
         for opp in opportunities[:max_to_execute]:
-            if opp.get("analysis", {}).get("score", 0) >= 60:
+            if opp.get("analysis", {}).get("score", 0) >= 40:
                 success = self.execute_opportunity(opp)
                 if success:
                     executed += 1

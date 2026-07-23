@@ -469,10 +469,11 @@ URL: {opp.get('url')}"""
         # 3. Sort by score
         analyzed.sort(key=lambda x: x.get("analysis", {}).get("score", 0), reverse=True)
         
-        # Queue high-scoring opportunities (>= 40 to start, tighten later)
+        # Queue high-scoring opportunities (>= 20 to start — we need volume)
         queued = 0
         for opp in analyzed:
-            if opp.get("analysis", {}).get("score", 0) >= 40:
+            score = opp.get("analysis", {}).get("score", 0)
+            if score >= 20:
                 self.agent.tasks["queue"].append({
                     "type": opp["type"],
                     "source": opp["source"],
@@ -480,7 +481,6 @@ URL: {opp.get('url')}"""
                     "title": opp["title"][:200],
                     "url": opp["url"],
                     "score": opp["analysis"]["score"],
-                    "estimated_earnings": opp["analysis"].get("estimated_earnings_usd", 0),
                     "created": datetime.now().isoformat()
                 })
                 queued += 1

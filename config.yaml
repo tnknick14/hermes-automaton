@@ -1,0 +1,45 @@
+# Hermes Autonomous Agent Configuration
+
+api:
+  base_url: "https://api.longcat.chat/openai"
+  model: "LongCat-2.0"
+  key: ""  # Set via LONGCAT_API_KEY env var
+
+wallet:
+  address: "0x2e7910E69a80eF9E4071c4508EfA692Af150950D"
+  rpc_url: "https://mainnet.base.org"
+
+limits:
+  max_daily_spend_usd: 5.0
+  max_single_transaction_usd: 2.0
+  loop_interval_seconds: 3600  # 1 hour
+
+modules:
+  bounty_analyzer: true
+  offer_creator: true
+  proposal_generator: true
+  market_researcher: true
+  self_improvement: true
+
+services:
+  signalgate:
+    port: 8766
+    enabled: true
+  stock_api:
+    port: 8765
+    enabled: true
+  crypto_terminal:
+    port: 8080
+    enabled: true
+
+github:
+  token: ""  # Set via GITHUB_TOKEN env var
+  search_queries:
+    - "label:bounty state:open"
+    - "label:\"good first issue\" state:open"
+    - "label:\"help wanted\" state:open"
+
+alpaca:
+  key: ""  # Set via ALPACA_KEY env var
+  secret: ""  # Set via ALPACA_SECRET env var
+  endpoint: "https://paper-api.alpaca.markets"

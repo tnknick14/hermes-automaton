@@ -1,0 +1,18 @@
+[Unit]
+Description=Hermes Autonomous Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/hermes-agent
+ExecStart=/usr/bin/python3 vps_agent.py
+Restart=always
+RestartSec=10
+Environment="LONGCAT_API_KEY=your_longcat_api_key_here"
+Environment="GITHUB_TOKEN=your_github_token_here"
+Environment="ALPACA_KEY=your_alpaca_key_here"
+Environment="ALPACA_SECRET=your_alpaca_secret_here"
+
+[Install]
+WantedBy=multi-user.target
